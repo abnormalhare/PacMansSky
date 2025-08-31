@@ -1,0 +1,5 @@
+fonts/*
+game/*
+graphics/*
+sounds/*
+*.lua
