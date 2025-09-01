@@ -51,11 +51,7 @@ function Ghost:update(dt)
         --system of walking
         if blocks.dirSum ~= 0 and (self.lastCross.x ~= math.floor(self.x) or self.lastCross.y ~= math.floor(self.y)) then
             if self.planet.state == "frightened" and not self.isAmogus then
-                local r = math.random(#blocks.passables)
-                local dir = blocks[blocks.passables[r]]
-                if dir == (self.rotation + 180) % 360 then
-                    dir = blocks[blocks.passables[(r + 1) % #blocks.passables]]
-                end
+                local dir = blocks[blocks.passables[math.random(#blocks.passables)]]
                 self.rotation = dir.rot
             else
                 --selecting target

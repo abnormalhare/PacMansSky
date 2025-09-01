@@ -116,9 +116,7 @@ function Pacman:update(dt)
     end
 
     local livesEveryXPoints = 10000
-    if math.floor(prevPoints / livesEveryXPoints) < math.floor(Game.points / livesEveryXPoints) then
-        Game.lives = Game.lives + 1
-    end
+    Game.lives = Game.lives + math.floor(Game.points / livesEveryXPoints) - math.floor(prevPoints / livesEveryXPoints)
 end
 
 function Pacman:draw()

@@ -226,14 +226,13 @@ end
 function Planet:update(dt)
     if self.state=="complete" then
         if #self.entities>1 then
-            for i=#self.entities,1,-1 do
-                if not self.entities[i]:instanceof(Pacman) then table.remove(self.entities,i) end
+            for i=2,#self.entities do
+                table.remove(self.entities,i)
             end
         end
-        return
     end
     -- entities update
-    if self.state=="chase" or self.state=="frightened" or self.state=="scatter" then
+    if self.state=="chase" or self.state=="frightened" or self.state=="scatter" or self.state == "complete" then
         for k,v in pairs(self.entities) do
             -- fixing entities position (looping around)
             if v.x>self.size then v.x=v.x-self.size end
@@ -277,7 +276,7 @@ function Planet:update(dt)
 
     if Game.spacman.fuel>Game.launchFuelUse*3 then 
         if self.id == 1 and Game.onFirstPlanet then
-            if self.state~="finished" and (not self.exitUnlocked) then
+            if self.state~="finished" and self.state ~= "complete" and (not self.exitUnlocked) then
                 self:setState("finished")
             end
         elseif not self.exitUnlocked then
