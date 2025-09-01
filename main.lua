@@ -64,7 +64,7 @@ function love.load()
     gametitle = "Pac-Man's Sky"
     windowWidth = 1280
     windowHeight = 720
-    windowMode = {msaa=0}
+    windowMode = {msaa=0, resizable=true}
     gamestate = 0
     
     love.window.setTitle(gametitle)
@@ -108,6 +108,11 @@ function love.load()
     love.graphics.setFont(res.fonts.default)
 
     setGamestate("menu")
+end
+
+function love.resize(w, h)
+    windowWidth = w
+    windowHeight = h
 end
 
 function love.update(dt)
