@@ -224,6 +224,14 @@ function Planet:cameraUpdate(dt)
 end
 
 function Planet:update(dt)
+    if self.state=="complete" then
+        if #self.entities>1 then
+            for i=#self.entities,1,-1 do
+                if not self.entities[i]:instanceof(Pacman) then table.remove(self.entities,i) end
+            end
+        end
+        return
+    end
     -- entities update
     if self.state=="chase" or self.state=="frightened" or self.state=="scatter" then
         for k,v in pairs(self.entities) do
@@ -263,6 +271,9 @@ function Planet:update(dt)
     -- pellet percent counter for sound
     self.pellets.percent = self.pellets.collected/self.pellets.all
     self.sounds.siren:setPitch(1+self.pellets.percent/4)
+    if self.pellets.percent == 1 then
+        self.state = "complete"
+    end
 
     if Game.spacman.fuel>Game.launchFuelUse*3 then 
         if self.id == 1 and Game.onFirstPlanet then
@@ -289,6 +300,7 @@ function Planet:update(dt)
             self.camera.smoothness=15
         end
     elseif self.state=="start2" then
+        self.player:updateInput()
         self.stateCounter.start2=self.stateCounter.start2+dt
         if self.stateCounter.start2>2.1 then 
             self.stateCounter.start2 = 0
@@ -310,6 +322,13 @@ function Planet:update(dt)
             self:setState("scatter")
         end
     elseif self.state=="frightened" then
+        if self.stateCounter.frightened == 0 then
+            if #self.entities>1 then
+                for i=#self.entities,1,-1 do
+                    self.entities[i].rotation = (self.entities[i].rotation + 180) % 360
+                end
+            end
+        end
         self.stateCounter.frightened=self.stateCounter.frightened+dt
         if self.stateCounter.frightened>7 then
             self.stateCounter.frightened = 0
@@ -340,13 +359,11 @@ function Planet:update(dt)
                 if self.entities[i].escaping then self.entities[i].escaping=false end
             end
             self:setState("start2")
+            self.player.wantedDir = {x=-1,y=0}
             self.stateCounter.death=0
         end
     elseif self.state=="finished" then
         self.stateCounter.finished=self.stateCounter.finished+dt
-        --if #self.entities>1 then for i=#self.entities,1,-1 do
-        --  if not self.entities[i]:instanceof(Pacman) then table.remove(self.entities,i) end
-        --end end
         if self.stateCounter.finished>1 and self.stateCounter.finished<3.5 then
             self.camera.x,self.camera.y = self.size/2+0.5,self.size/2+0.5
             self.camera.smoothness=10
@@ -622,51 +639,55 @@ function Planet:generate()
         {x=0,y=1,dir="down",odir="up"}
     }
     local cells = {}
-    local cw,ch = size/3,size/3
-    for y=1,ch do if not cells[y] then cells[y]= {} end end
+    local cell_width,cell_height = size/3,size/3
+    for y=1,cell_height do if not cells[y] then cells[y]= {} end end
     
     -- creating the box for ghosts
-    cells[ch/2][cw/2] = {up=false,down=true,left=true,right=true} 
-    cells[ch/2+1][cw/2] = {up=true,down=false,left=true,right=true} 
-    cells[ch/2][cw/2-1] = {up=false,down=true,left=false,right=true} 
-    cells[ch/2+1][cw/2-1] = {up=true,down=false,left=false,right=true} 
+    cells[cell_height/2][cell_width/2] = {up=false,down=true,left=true,right=true} 
+    cells[cell_height/2+1][cell_width/2] = {up=true,down=false,left=true,right=true} 
+    cells[cell_height/2][cell_width/2-1] = {up=false,down=true,left=false,right=true} 
+    cells[cell_height/2+1][cell_width/2-1] = {up=true,down=false,left=false,right=true} 
     
     -- generating only half of maze, second half will be mirrored version of this one
-    for y=1,ch do for x=1,cw/2 do if not cells[y][x] then 
-        local cur = {x=0,y=0}
-        local cellCount = 2+randomizer:random(y*5+x*2+31)%4
-        cells[y][x] = {up=false,down=false,left=false,right=false} -- connections between cells
-        for i=1,cellCount do
-            local possibleCells = {}
-            if x+cur.x>1 and cur.x>-2 and (not cells[y+cur.y][x+cur.x-1] or cells[y+cur.y][x+cur.x-1].right) then 
-                table.insert(possibleCells,celldirs[1]) end
-            if x+cur.x<cw/2 and cur.x<2 and (not cells[y+cur.y][x+cur.x+1] or cells[y+cur.y][x+cur.x+1].left) then 
-                table.insert(possibleCells,celldirs[2]) end
-            if y+cur.y>1 and cur.y>-2 and (not cells[y+cur.y-1][x+cur.x] or cells[y+cur.y-1][x+cur.x].down) then 
-                table.insert(possibleCells,celldirs[3]) end
-            if y+cur.y<ch and cur.y<2 and (not cells[y+cur.y+1][x+cur.x] or cells[y+cur.y+1][x+cur.x].up) then 
-                table.insert(possibleCells,celldirs[4]) end
-            if #possibleCells==0 then break end
-            local target = possibleCells[randomizer:random(y*2+x*7+25)%#possibleCells+1]
-            cells[y+cur.y][x+cur.x][target.dir] = true
-            cur.x,cur.y = cur.x+target.x,cur.y+target.y
-            if cells[y+cur.y][x+cur.x] then
-                i = i-1
-            else cells[y+cur.y][x+cur.x] = {up=false,down=false,left=false,right=false} end
-            cells[y+cur.y][x+cur.x][target.odir] = true
-            -- creating rectangular blocks from "U" ones
-            if i==cellCount and ((cur.x==0 and (cur.y==-1 or cur.y==1)) or (cur.y==0 and (cur.x==-1 or cur.x==1))) then
-                local celldir = nil
-                for k,cdir in pairs(celldirs) do
-                    if cdir.x==cur.x and cdir.y==cur.y then celldir = cdir ; break end
-                end
-                if celldir then
-                    cells[y][x][celldir.dir] = true
-                    cells[y+cur.y][x+cur.x][celldir.odir] = true
+    for y=1,cell_height do
+        for x=1,cell_width/2 do
+            if not cells[y][x] then 
+                local cur = {x=0,y=0}
+                local cellCount = 2+randomizer:random(y*5+x*2+31)%4
+                cells[y][x] = {up=false,down=false,left=false,right=false} -- connections between cells
+                for i=1,cellCount do
+                    local possibleCells = {}
+                    if x+cur.x>1 and cur.x>-2 and (not cells[y+cur.y][x+cur.x-1] or cells[y+cur.y][x+cur.x-1].right) then 
+                        table.insert(possibleCells,celldirs[1]) end
+                    if x+cur.x<cell_width/2 and cur.x<2 and (not cells[y+cur.y][x+cur.x+1] or cells[y+cur.y][x+cur.x+1].left) then 
+                        table.insert(possibleCells,celldirs[2]) end
+                    if y+cur.y>1 and cur.y>-2 and (not cells[y+cur.y-1][x+cur.x] or cells[y+cur.y-1][x+cur.x].down) then 
+                        table.insert(possibleCells,celldirs[3]) end
+                    if y+cur.y<cell_height and cur.y<2 and (not cells[y+cur.y+1][x+cur.x] or cells[y+cur.y+1][x+cur.x].up) then 
+                        table.insert(possibleCells,celldirs[4]) end
+                    if #possibleCells==0 then break end
+                    local target = possibleCells[randomizer:random(y*2+x*7+25)%#possibleCells+1]
+                    cells[y+cur.y][x+cur.x][target.dir] = true
+                    cur.x,cur.y = cur.x+target.x,cur.y+target.y
+                    if cells[y+cur.y][x+cur.x] then
+                        i = i-1
+                    else cells[y+cur.y][x+cur.x] = {up=false,down=false,left=false,right=false} end
+                    cells[y+cur.y][x+cur.x][target.odir] = true
+                    -- creating rectangular blocks from "U" ones
+                    if i==cellCount and ((cur.x==0 and (cur.y==-1 or cur.y==1)) or (cur.y==0 and (cur.x==-1 or cur.x==1))) then
+                        local celldir = nil
+                        for k,cdir in pairs(celldirs) do
+                            if cdir.x==cur.x and cdir.y==cur.y then celldir = cdir ; break end
+                        end
+                        if celldir then
+                            cells[y][x][celldir.dir] = true
+                            cells[y+cur.y][x+cur.x][celldir.odir] = true
+                        end
+                    end
                 end
             end
         end
-    end end end
+    end
     --[[
     -- connect random walls from end of the map
     for i=1,randomizer:random(990308)%2+2 do
@@ -680,18 +701,46 @@ function Planet:generate()
     end]]--
     
     -- duplicate generated map for second half
-    for y=1,ch do for x=cw/2+1,cw do
-        local cell = cells[y][cw+1-x]
+    for y=1,cell_height do for x=cell_width/2+1,cell_width do
+        local cell = cells[y][cell_width+1-x]
         cells[y][x] = {up=cell.up,down=cell.down,left=cell.right,right=cell.left}
     end end
 
     -- convert cells to tiles
-    for y=1,ch do for x=1,cw do
+    for y=1,cell_height do for x=1,cell_width do
         local cx,cy = (x-1)*3+1,(y-1)*3+1
         
         local cell = cells[y][x] or {}
         if not cell.up then for i=0,3 do self.map[cy][math.min(cx+i,size)]=1 end end
         if not cell.left then for i=0,3 do self.map[math.min(cy+i,size)][cx]=1 end end
+    end end
+
+    -- flood fill to mark reachable cells
+    local reachable = {}
+    for y=1,size do reachable[y] = {} end
+    local queue = {}
+    local startX, startY = math.floor(size/2), math.floor(size/2)
+    table.insert(queue, {x=startX, y=startY})
+    reachable[startY][startX] = true
+    while #queue > 0 do
+        local node = table.remove(queue, 1)
+        local x, y = node.x, node.y
+        for _, dir in ipairs({{0,1},{0,-1},{1,0},{-1,0}}) do
+            local nx, ny = x+dir[1], y+dir[2]
+            if nx >= 1 and nx <= size and ny >= 1 and ny <= size then
+                if not reachable[ny][nx] and self:getBlock(nx,ny) ~= Planet.tiles.WALL_R and self:getBlock(nx,ny) ~= Planet.tiles.WALL_L and self:getBlock(nx,ny) ~= Planet.tiles.WALL_T and self:getBlock(nx,ny) ~= Planet.tiles.WALL_B then
+                    reachable[ny][nx] = true
+                    table.insert(queue, {x=nx, y=ny})
+                end
+            end
+        end
+    end
+
+    -- remove pellets from unreachable cells
+    for y=1,size do for x=1,size do
+        if self:getBlock(x,y) == Planet.tiles.PELLET and not reachable[y][x] then
+            self.map[y][x] = Planet.tiles.AIR
+        end
     end end
 
     -- creating good looking walls
@@ -802,7 +851,7 @@ function Planet:generate()
                 end
             end end
             if corner>1 and corner<3 then
-                if randomizer:random(self.id==1 and 200 or 400)==1 then 
+                if randomizer:random(self.id==1 and 150 or 250)==1 then 
                     self.map[y][x]=Planet.tiles.POWER
                 elseif randomizer:random(400)==1 then 
                     self.map[y][x]=Planet.tiles.CHERRY

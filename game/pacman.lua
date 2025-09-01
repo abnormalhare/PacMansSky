@@ -12,22 +12,26 @@ function Pacman:init(planet)
         table.insert(self.quads,love.graphics.newQuad(x*15,y*15,15,15,self.texture:getDimensions()))
     end end
     self.rotation = 0
-    self.wantedDir = {x=1,y=0}
+    self.wantedDir = {x=-1,y=0}
     self.speed = 6
     self.eatSound = res.sounds["retro-eat1"]
     self.ghostEatSound = res.sounds["retro-eatghost"]
     self.ghostCombo = 0
 end
 
-function Pacman:update(dt)
-    self.x = self.x+self.velX*dt
-    self.y = self.y+self.velY*dt
-
+function Pacman:updateInput()
     --managing input
     if Input.isKeyTyped("left") then self.wantedDir = {x=-1,y=0} end
     if Input.isKeyTyped("right") then self.wantedDir = {x=1,y=0} end
     if Input.isKeyTyped("down") then self.wantedDir = {x=0,y=1} end
     if Input.isKeyTyped("up") then self.wantedDir = {x=0,y=-1} end
+end
+
+function Pacman:update(dt)
+    self.x = self.x+self.velX*dt
+    self.y = self.y+self.velY*dt
+
+    self:updateInput()
 
     --system of walking
     if self.planet:isBlockPassable(self.x+self.wantedDir.x+1,self.y+self.wantedDir.y+1) then
@@ -82,6 +86,7 @@ function Pacman:update(dt)
         end
     end
 
+    local prevPoints = Game.points
     -- Interacting with map blocks
     local blockX, blockY = self.x+1, self.y+1
     local standBlock = self.planet:getBlock(blockX, blockY)
@@ -108,6 +113,11 @@ function Pacman:update(dt)
         self.planet.stateCounter.finished = 0
         self.x,self.y = math.floor(self.x)+0.5,math.floor(self.y)+0.5
         res.sounds.eject:play()
+    end
+
+    local livesEveryXPoints = 10000
+    if math.floor(prevPoints / livesEveryXPoints) < math.floor(Game.points / livesEveryXPoints) then
+        Game.lives = Game.lives + 1
     end
 end
 

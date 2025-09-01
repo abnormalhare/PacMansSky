@@ -66,14 +66,14 @@ function love.load()
     windowHeight = 720
     windowMode = {msaa=0}
     gamestate = 0
-    --[[
+    
     love.window.setTitle(gametitle)
     love.window.setMode(windowWidth,windowHeight,windowMode)
 
     love.filesystem.setIdentity(gametitle)
-    if not love.filesystem.exists(love.filesystem.getSaveDirectory()) then
+    if not love.filesystem.getInfo(love.filesystem.getSaveDirectory()) then
         love.filesystem.createDirectory(love.filesystem.getSaveDirectory())
-    end]]--
+    end
 
     --I don't need saving planets to a file now
     --SAVE = table.load("SAVE") or {}

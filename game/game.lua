@@ -428,11 +428,23 @@ function game_draw()
     love.graphics.printf(timeFormat(_TIME),32,80,64,"right",0,6)
 
     -- lifes
-    if Game.state=="planet" or Game.state=="starting" then for i=1,3 do
-        if not lifeIcon then lifeIcon = love.graphics.newQuad(15,15,15,15,res.images.pacman:getDimensions()) end
-        love.graphics.setColorOld(255,255,255,i<=Game.lives and 255 or 32)
-        love.graphics.draw(res.images.pacman,lifeIcon,32+(i-1)*60,windowHeight-150,0,4,4)
-    end end
+    if Game.state=="planet" or Game.state=="starting" then
+        if Game.lives > 4 then
+            if not lifeIcon then lifeIcon = love.graphics.newQuad(15,15,15,15,res.images.pacman:getDimensions()) end
+            love.graphics.setColorOld(255, 255, 255, 255)
+            love.graphics.draw(res.images.pacman, lifeIcon, 32, windowHeight - 150, 0, 4, 4)
+
+            local text = ":"
+            love.graphics.printf(text, 32 + 60, windowHeight - 135, 10000, "left", 0, 6)
+            love.graphics.printf(Game.lives, 32 + 80, windowHeight - 135, 64, "left", 0, 6)
+        else
+            for i=1, Game.lives do
+                if not lifeIcon then lifeIcon = love.graphics.newQuad(15,15,15,15,res.images.pacman:getDimensions()) end
+                love.graphics.setColorOld(255, 255, 255, i <= Game.lives and 255 or 32)
+                love.graphics.draw(res.images.pacman, lifeIcon, 32 + (i - 1) * 60, windowHeight - 150, 0, 4, 4)
+            end
+        end
+    end
 
     -- cherry counter
     if not Game.isWinning then

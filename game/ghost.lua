@@ -49,18 +49,22 @@ function Ghost:update(dt)
         end
 
         --system of walking
-        if blocks.dirSum~=0 and (self.lastCross.x~=math.floor(self.x) or self.lastCross.y~=math.floor(self.y)) then
-            if self.planet.state=="frightened" and not self.isAmogus then
-                local dir = blocks[blocks.passables[math.random(#blocks.passables)]]
+        if blocks.dirSum ~= 0 and (self.lastCross.x ~= math.floor(self.x) or self.lastCross.y ~= math.floor(self.y)) then
+            if self.planet.state == "frightened" and not self.isAmogus then
+                local r = math.random(#blocks.passables)
+                local dir = blocks[blocks.passables[r]]
+                if dir == (self.rotation + 180) % 360 then
+                    dir = blocks[blocks.passables[(r + 1) % #blocks.passables]]
+                end
                 self.rotation = dir.rot
             else
                 --selecting target
-                local target = {x=0,y=0}
-                local player,blinky = nil,nil
+                local target = {x = 0,y = 0}
+                local player,blinky = nil, nil
                 for i,v in pairs(self.planet.entities) do
-                    if v:instanceof(Pacman) then player=v end
+                    if v:instanceof(Pacman) then player = v end
                     --sometimes there might be no blinky so inky has to rely on someone else, unfortunately
-                    if v:instanceof(Ghost) and (v.type=="blinky" or blinky==nil) then blinky=v end 
+                    if v:instanceof(Ghost) and (v.type == "blinky" or blinky == nil) then blinky = v end 
                 end
                 if self:isInGhostHouse() and not self.escaping then
                     target = {x=self.planet.size/2,y=self.planet.size/2-4}
