@@ -27,6 +27,7 @@ function Pacman:updateInput()
     if Input.isKeyTyped("up") then self.wantedDir = {x=0,y=-1} end
 end
 
+local livesEveryXPoints = 10000
 function Pacman:update(dt)
     self.x = self.x+self.velX*dt
     self.y = self.y+self.velY*dt
@@ -62,6 +63,8 @@ function Pacman:update(dt)
         else self.velX = ((dir-self.x)>0 and 1 or -1)*self.speed end
     end
   
+    local prevPoints = Game.points
+
     -- colliding with ghosts
     for k,v in pairs(self.planet.entities) do
         if v:instanceof(Ghost) and not v.escaping then
@@ -86,7 +89,6 @@ function Pacman:update(dt)
         end
     end
 
-    local prevPoints = Game.points
     -- Interacting with map blocks
     local blockX, blockY = self.x+1, self.y+1
     local standBlock = self.planet:getBlock(blockX, blockY)
@@ -115,7 +117,6 @@ function Pacman:update(dt)
         res.sounds.eject:play()
     end
 
-    local livesEveryXPoints = 10000
     Game.lives = Game.lives + math.floor(Game.points / livesEveryXPoints) - math.floor(prevPoints / livesEveryXPoints)
 end
 
